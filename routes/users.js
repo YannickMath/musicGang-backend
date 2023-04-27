@@ -12,6 +12,14 @@ cloudinary.config({
 });
 
 
+//import JWT
+import jwt from 'jsonwebtoken';
+
+const token = jwt.sign({ userId: '12345' }, 'your-secret-key');
+console.log(token);
+
+
+
 
 /* GET users listing. */
 router.get('/', function(req, res, next) {
