@@ -103,7 +103,7 @@ router.post("/signup", async (req, res) => {
 
 
 router.post('/signin', authMiddleware, async (req, res) => {
-  const {username, password} = req.body
+  const {username, email, password} = req.body
 
     // Validation de formulaire
     if (!username || !password) {
@@ -114,7 +114,7 @@ router.post('/signin', authMiddleware, async (req, res) => {
     }
 
     try {
-      const user = await User.findOne({ password })
+      const user = await User.findOne({ email })
 
       if (!user) {
         console.log(res.json)
