@@ -1,25 +1,59 @@
-var express = require("express");
-var router = express.Router();
-require("dotenv").config();
-const uid2 = require("uid2");
+const express = require("express");
+const router = express.Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
-
-//identification Cloudinary
+const User = require("../models/users");
+const uuidv4 = require("uuid").v4; 
 const cloudinary = require("cloudinary").v2;
+const multer = require("multer");
 
+
+// configuration de cloudinary avec vos identifiants d'API
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-rrouter.post("/signup", async (req, res) => {
-  const { firstname, username, mail, password } = req.body;
+const upload = multer({ dest: '/tmp/' });
+
+const fs = require("fs");
+
+
+//creation middleware
+const authMiddleware = (req, res, next) => {
+  // Récupération du jeton JWT depuis l'en-tête Authorization
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(" ")[1];
+
+  // Vérification de la validité du jeton JWT
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: "Unauthorized",
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({
+      success: false,
+      error: "Unauthorized",
+    });
+  }
+};
+
+
+// Route d'inscription
+router.post("/signup", async (req, res) => {
+  const { firstname, username, email, password } = req.body;
 
   // Validation de formulaire
-  if (!firstname || !username || !mail || !password) {
+  if (!firstname || !username || !email || !password) {
     return res.status(400).json({
       success: false,
       error: "All fields are required",
@@ -27,24 +61,23 @@ rrouter.post("/signup", async (req, res) => {
   }
 
   try {
-    const existingUser = await User.findOne({ username });
+    const existingUser = await User.findOne({ email });
 
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        error: "Username already exists",
+        error: "Email already exists",
       });
     }
 
     const hash = await bcrypt.hash(password, 10);
-    const token = uid2(32); // Génération d'un token unique avec uid2
 
     const newUser = new User({
       firstname,
       username,
-      mail,
+      email,
       password: hash,
-      token,
+      uniqueId: uuidv4(), 
     });
 
     const savedUser = await newUser.save();
@@ -56,15 +89,56 @@ rrouter.post("/signup", async (req, res) => {
 
     res.status(201).json({
       success: true,
-      token,
       user: savedUser,
+      authToken,
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({
       success: false,
-      error: "Server error",
+      error: err.message, // utilise le vrai message d'erreur
     });
   }
 });
+
+
+router.post('/signin', authMiddleware, async (req, res) => {
+  const {username, password} = req.body
+
+    // Validation de formulaire
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        error: "All fields are required",
+      });
+    }
+
+    try {
+      const user = await User.findOne({ password })
+
+      if (!user) {
+        console.log(res.json)
+        return res.status(401).json({ result: false, error:"User not found!"})
+        
+      }
+
+      const isPasswordMatch= await bcrypt.compare(password, user.password)
+      if (!isPasswordMatch) {
+        return res
+        .status(401)
+        .json({ result: false, error: "Incorrect password" });
+      }
+
+      return res.json({ result: true, user })
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({
+        success: false,
+        error: err.message, // utilise le vrai message d'erreur
+      });
+    }
+  });
+
+
+
 module.exports = router;

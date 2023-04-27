@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
-  mail: {
+  email: {
     type: String,
     required: true,
     unique: true,
@@ -20,14 +20,23 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  token: {
+  uniqueId: {
     type: String,
     required: true,
     unique: true,
   }
+
+
 
   //ajout automatique des champs createdAt et updatedAt à chaque document créé ou modifié
 }, { timestamps: true });
 
 const User = mongoose.model("users", userSchema);
 module.exports = User;
+
+
+// userId: {
+//     type: mongoose.Schema.Types.ObjectId,
+//     ref: "users",
+//     required: true,
+//   }, 
