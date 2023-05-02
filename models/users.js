@@ -35,8 +35,3 @@ const User = mongoose.model("users", userSchema);
 module.exports = User;
 
 
-// userId: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: "users",
-//     required: true,
-//   }, 
